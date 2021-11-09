@@ -12,13 +12,13 @@
 
 # ---------- Example of path outside this file folder ------------------
 # Project path
-# PROJECT_PATH = ../examples
+ PROJECT_PATH = examples
 # Project name
-# PROJECT_NAME = expropiativo
+ PROJECT_NAME = expropiativo
 
 # ---------- Your paths: -----------------------------------------------
 # Project path
-PROJECT_PATH = projects
+#PROJECT_PATH = projects
 # Project name
 # PROJECT_NAME = blinking_freertos
-PROJECT_NAME = blinking
+#PROJECT_NAME = blinking
