@@ -55,6 +55,7 @@
 #include "task.h"
 #include "soc.h"
 #include "led.h"
+#include "semphr.h"
 /* === Definicion y Macros ================================================= */
 
 /* === Declaraciones de tipos de datos internos ============================ */
@@ -78,6 +79,8 @@ void Blinking(void * parametros);
 
 /* === Definiciones de variables internas ================================== */
 
+SemaphoreHandle_t mutex;
+
 /* === Definiciones de variables externas ================================== */
 
 /* === Definiciones de funciones internas ================================== */
@@ -86,8 +89,11 @@ void Blinking(void * parametros) {
 	blinking_t * valores = parametros;
 
 	while(1) {
+		xSemaphoreTake(mutex,portMAX_DELAY);
 		Led_Toggle(valores->led);
 		vTaskDelay(valores->delay/ portTICK_PERIOD_MS);
+		xSemaphoreGive(mutex);
+		vTaskDelay(1/ portTICK_PERIOD_MS);
 	}
 }
 /* === Definiciones de funciones externas ================================== */
@@ -108,6 +114,7 @@ int main(void) {
 	};
 
 
+	mutex=xSemaphoreCreateMutex();
 
 
 	/* Inicializaciones y configuraciones de dispositivos */
