@@ -58,6 +58,14 @@
 /* === Definicion y Macros ================================================= */
 
 /* === Declaraciones de tipos de datos internos ============================ */
+/*Estructura para pasar por parametros a la tarea de prende y apaga led*/
+typedef struct {
+		uint8_t led ;	/* * < Led que debe parpadear la tarea */
+	    uint16_t delay ; /* * < Demora entre cada encendido*/
+	}blinking_t;
+
+
+
 
 /* === Declaraciones de funciones internas ================================= */
 
@@ -75,9 +83,11 @@ void Blinking(void * parametros);
 /* === Definiciones de funciones internas ================================== */
 
 void Blinking(void * parametros) {
-   while(1) {
-      Led_Toggle(RGB_B_LED);
-      vTaskDelay(500 / portTICK_PERIOD_MS);
+	 blinking_t * valores = parametros;
+
+	while(1) {
+      Led_Toggle(valores->led);
+      vTaskDelay(valores->delay/ portTICK_PERIOD_MS);
    }
 }
 /* === Definiciones de funciones externas ================================== */
@@ -90,13 +100,23 @@ void Blinking(void * parametros) {
  **          El valor de retorno 0 es para evitar un error en el compilador.
  */
 int main(void) {
-   /* Inicializaciones y configuraciones de dispositivos */
+
+	/* Variable con los parametros de las tareas */
+	static blinking_t valores[]={
+			{.led =RGB_B_LED, .delay = 500},
+			{.led =RGB_R_LED, .delay =300}
+	};
+
+
+
+
+	/* Inicializaciones y configuraciones de dispositivos */
    SisTick_Init();
    Init_Leds();
 
    /* Creación de las tareas */
-   xTaskCreate(Blinking, "Azul", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, NULL);
-
+   xTaskCreate(Blinking, "Azul", configMINIMAL_STACK_SIZE, &valores[0], tskIDLE_PRIORITY + 1, NULL);
+   xTaskCreate(Blinking, "Rojo", configMINIMAL_STACK_SIZE, &valores[1], tskIDLE_PRIORITY + 1, NULL);
    /* Arranque del sistema operativo */
    vTaskStartScheduler();
    
