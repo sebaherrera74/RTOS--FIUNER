@@ -90,10 +90,13 @@ void Blinking(void * parametros) {
 
 	while(1) {
 		xSemaphoreTake(mutex,portMAX_DELAY);
-		Led_Toggle(valores->led);
+		//Led_Toggle(valores->led);
+		Led_On(valores->led);
 		vTaskDelay(valores->delay/ portTICK_PERIOD_MS);
+		Led_Off(valores->led);
 		xSemaphoreGive(mutex);
-		vTaskDelay(1/ portTICK_PERIOD_MS);
+		vTaskDelay(valores->delay/ portTICK_PERIOD_MS);
+		//vTaskDelay(1/ portTICK_PERIOD_MS);
 	}
 }
 /* === Definiciones de funciones externas ================================== */
