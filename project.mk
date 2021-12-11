@@ -14,7 +14,8 @@
 # Project path
  PROJECT_PATH =projects
 # Project name
- PROJECT_NAME =mutex
+ PROJECT_NAME =eventos
+ 
  
 
 # ---------- Your paths: -----------------------------------------------
