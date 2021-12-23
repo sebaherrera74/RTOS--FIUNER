@@ -68,14 +68,16 @@
 #include "soc.h"
 #include "led.h"
 #include "switch.h"
+#include "chip.h"
+#include "ili9341.h"
 
 /* === Definicion y Macros ================================================= */
+#define SPI_1   1  /*!< EDU-CIAA SPI port */
+#define GPIO_0  0 /*!< EDU-CIAA GPIO0 port */
+#define GPIO_6  6 /*!< EDU-CIAA GPIO1 port */
+#define GPIO_7  7 /*!< EDU-CIAA GPIO2 port */
 
 /* === Declaraciones de tipos de datos internos ============================ */
-
-
-
-
 
 /* === Declaraciones de funciones internas ================================= */
 
@@ -87,14 +89,14 @@
 void Blinking(void * parametros);
 void Teclado(void * parametros);
 void Cronometro(void * parametros);
-
-
+void Display(void * parametros);
 
 /* === Definiciones de variables internas ================================== */
 
 bool detenido=true;
 bool poneCero=true;
 bool flagTiempo=true;
+
 typedef struct {
 	uint8_t decimas;
 	uint8_t segundos;
@@ -149,7 +151,6 @@ void Teclado(void * parametros)
 				if (actual & TECLA2)
 				{
 					poneCero=!poneCero;  //Cambio el estado de la variable cuando presiono la tecla 1
-
 				}
 				else
 				{
@@ -161,20 +162,16 @@ void Teclado(void * parametros)
 				if (actual & TECLA3)
 				{
 					flagTiempo=!flagTiempo;  //Cambio el estado de la variable cuando presiono la tecla 1
-
 				}
 				else
 				{
 					//Suelto tecla
 				}
 			}
-
 			anterior=actual;
 			vTaskDelay(100/ portTICK_PERIOD_MS);
 		}
-
 		vTaskDelay(50/ portTICK_PERIOD_MS);
-
 	}
 }
 void Cronometro(void * parametros)
@@ -189,7 +186,6 @@ void Cronometro(void * parametros)
 		if (!detenido)
 		{
 			tiempo.decimas++;
-
 			if(tiempo.decimas>=10){
 				tiempo.decimas=0;
 				tiempo.segundos++;
@@ -200,32 +196,43 @@ void Cronometro(void * parametros)
 			}
 			if (tiempo.minutos==60){
 				tiempo.minutos=0;
-
 			}
 		}
 		else{
 			if(!poneCero){
-
 				tiempo.decimas=0;
 				tiempo.segundos=0;
 				tiempo.minutos=0;
 				poneCero=true;
 			}
-
 		}
-
 		if(!flagTiempo){
 			tiempoParcial.decimas=tiempo.decimas;
 			tiempoParcial.segundos=tiempo.segundos;
 			tiempoParcial.minutos=tiempo.minutos;
 			flagTiempo=true;
-
 		}
 	}
 }
 
+void Display(void * parametros)
+{
+	char muestrahora[9] = "00:00:00";
+	char muestrahoraparcial[9] = "00:00:00";
+	while(1) {
 
 
+		sprintf(muestrahora,"%02d:%02d:%02d",tiempo.minutos,tiempo.segundos,tiempo.decimas);
+		sprintf(muestrahoraparcial,"%02d:%02d:%02d",tiempoParcial.minutos,tiempoParcial.segundos,tiempoParcial.decimas);
+		ILI9341DrawString(100, 25, muestrahora, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
+
+		ILI9341DrawString(100, 140, muestrahoraparcial, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
+		vTaskDelay(100/ portTICK_PERIOD_MS);
+	}
+
+
+
+}
 
 
 /* === Definiciones de funciones externas ================================== */
@@ -237,18 +244,22 @@ void Cronometro(void * parametros)
  ** @remarks En un sistema embebido la función main() nunca debe terminar.
  **          El valor de retorno 0 es para evitar un error en el compilador.
  */
-int main(void) {
+int main(void)
+{
+	//char horaprueba[9] = "00:00:00";
 
 
 	/* Inicializaciones y configuraciones de dispositivos */
-
-	SisTick_Init();
 	Init_Leds();
-
+	ILI9341Init(SPI_1, GPIO_0, GPIO_6, GPIO_7);
+	ILI9341Rotate(ILI9341_Landscape_1);
+    //ILI9341DrawString(50, 25, horaprueba, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
+    SisTick_Init();
 	/* Creación de las tareas */
-	xTaskCreate(Blinking, "Toggle", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, NULL);
-	xTaskCreate(Teclado, "Teclas", configMINIMAL_STACK_SIZE,NULL, tskIDLE_PRIORITY + 2, NULL);
-	xTaskCreate(Cronometro, "Cronometros", configMINIMAL_STACK_SIZE,NULL, tskIDLE_PRIORITY + 1, NULL);
+	xTaskCreate(Blinking,  "Toggle", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, NULL);
+	xTaskCreate(Teclado,   "Teclas", configMINIMAL_STACK_SIZE,NULL, tskIDLE_PRIORITY + 2, NULL);
+	xTaskCreate(Cronometro,"Cronometros", configMINIMAL_STACK_SIZE,NULL, tskIDLE_PRIORITY + 2,NULL);
+	xTaskCreate(Display,"display", 160,NULL, tskIDLE_PRIORITY + 1, NULL);
 
 	/* Arranque del sistema operativo */
 	vTaskStartScheduler();

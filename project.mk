@@ -16,7 +16,6 @@
 # Project name
  PROJECT_NAME =tp2-cronometrobasico
  
- 
 
 # ---------- Your paths: -----------------------------------------------
 # Project path
