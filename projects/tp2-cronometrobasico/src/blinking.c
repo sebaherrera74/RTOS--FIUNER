@@ -33,6 +33,18 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+///----------Requerimientos del Trabajo-------------------
+/*---El botón TEC1 debe iniciar y detener la cuenta.
+-----El botón TEC2 debe volver la cuenta a cero solo si esta detenido.
+-----Mientras la cuenta esta corriendo deben parpadear el led RGB en
+     verde.
+-----Mientras la cuenta esta detenida el led RGB debe permanecer en rojo.
+-----Si el cronometro esta funcionando y la cuenta se muestra en la
+     pantalla la tecla TEC3 debe congelar el tiempo parcial y mantener la
+     cuenta activa.
+-----Si se esta mostrando un tiempo parcial la tecla TEC3 debe volver a
+     mostrar la cuenta actual de cronometro.*/
+
 /** @file blinking.c
  **
  ** @brief Ejemplo de un led parpadeando
@@ -55,14 +67,12 @@
 #include "task.h"
 #include "soc.h"
 #include "led.h"
+#include "switch.h"
+
 /* === Definicion y Macros ================================================= */
 
 /* === Declaraciones de tipos de datos internos ============================ */
-/*Estructura para pasar por parametros a la tarea de prende y apaga led*/
-typedef struct {
-	uint8_t led ;	/* * < Led que debe parpadear la tarea */
-	uint16_t delay ; /* * < Demora entre cada encendido*/
-}blinking_t;
+
 
 
 
@@ -75,21 +85,149 @@ typedef struct {
  **                           y la demora entre encendido y apagado.
  */ 
 void Blinking(void * parametros);
+void Teclado(void * parametros);
+void Cronometro(void * parametros);
+
+
 
 /* === Definiciones de variables internas ================================== */
 
+bool detenido=true;
+bool poneCero=true;
+bool flagTiempo=true;
+typedef struct {
+	uint8_t decimas;
+	uint8_t segundos;
+	uint8_t minutos;
+} tiempo_t;
+
+tiempo_t tiempo;
+tiempo_t tiempoParcial;
 /* === Definiciones de variables externas ================================== */
 
 /* === Definiciones de funciones internas ================================== */
 
 void Blinking(void * parametros) {
-	blinking_t * valores = parametros;
+	//blinking_t * valores = parametros;
 
 	while(1) {
-		Led_Toggle(valores->led);
-		vTaskDelay(valores->delay/ portTICK_PERIOD_MS);
+		if (detenido) {
+			Led_On( RGB_R_LED);
+			Led_Off(RGB_G_LED);
+		}
+		else{
+			Led_Off(RGB_R_LED);
+			Led_Toggle(RGB_G_LED);
+
+		}
+		vTaskDelay(500/ portTICK_PERIOD_MS);
 	}
 }
+
+void Teclado(void * parametros)
+{
+	uint8_t actual;
+	uint8_t anterior=0;
+	while(1)
+	{
+		actual=Read_Switches();
+		if (actual!=anterior)
+		{
+			if(( actual^anterior) & TECLA1)
+			{
+				if (actual & TECLA1){
+					detenido=!detenido;  //Cambio el estado de la variable cuando presiono la tecla 1
+					//Led_Toggle(RED_LED);
+				}
+				else
+				{
+					//Suelto tecla
+				}
+			}
+			if(( actual^anterior) & TECLA2)
+			{
+				if (actual & TECLA2)
+				{
+					poneCero=!poneCero;  //Cambio el estado de la variable cuando presiono la tecla 1
+
+				}
+				else
+				{
+					//Suelto tecla
+				}
+			}
+			if(( actual^anterior) & TECLA3)
+			{
+				if (actual & TECLA3)
+				{
+					flagTiempo=!flagTiempo;  //Cambio el estado de la variable cuando presiono la tecla 1
+
+				}
+				else
+				{
+					//Suelto tecla
+				}
+			}
+
+			anterior=actual;
+			vTaskDelay(100/ portTICK_PERIOD_MS);
+		}
+
+		vTaskDelay(50/ portTICK_PERIOD_MS);
+
+	}
+}
+void Cronometro(void * parametros)
+{
+	TickType_t anterior;
+	anterior=xTaskGetTickCount();
+
+	while(1)
+	{
+		vTaskDelayUntil(&anterior,100/ portTICK_PERIOD_MS);
+
+		if (!detenido)
+		{
+			tiempo.decimas++;
+
+			if(tiempo.decimas>=10){
+				tiempo.decimas=0;
+				tiempo.segundos++;
+			}
+			if(tiempo.segundos >=60){
+				tiempo.segundos=0;
+				tiempo.minutos++;
+			}
+			if (tiempo.minutos==60){
+				tiempo.minutos=0;
+
+			}
+		}
+		else{
+			if(!poneCero){
+
+				tiempo.decimas=0;
+				tiempo.segundos=0;
+				tiempo.minutos=0;
+				poneCero=true;
+			}
+
+		}
+
+		if(!flagTiempo){
+			tiempoParcial.decimas=tiempo.decimas;
+			tiempoParcial.segundos=tiempo.segundos;
+			tiempoParcial.minutos=tiempo.minutos;
+			flagTiempo=true;
+
+		}
+	}
+}
+
+
+
+
+
 /* === Definiciones de funciones externas ================================== */
 
 /** @brief Función principal del programa
@@ -101,14 +239,6 @@ void Blinking(void * parametros) {
  */
 int main(void) {
 
-	/* Variable con los parametros de las tareas */
-	static blinking_t valores[]={
-			{.led =RGB_B_LED, .delay = 500},
-			{.led =RGB_R_LED, .delay =300}
-	};
-
-
-
 
 	/* Inicializaciones y configuraciones de dispositivos */
 
@@ -116,8 +246,10 @@ int main(void) {
 	Init_Leds();
 
 	/* Creación de las tareas */
-	xTaskCreate(Blinking, "Azul", configMINIMAL_STACK_SIZE, &valores[0], tskIDLE_PRIORITY + 1, NULL);
-	xTaskCreate(Blinking, "Rojo", configMINIMAL_STACK_SIZE, &valores[1], tskIDLE_PRIORITY + 1, NULL);
+	xTaskCreate(Blinking, "Toggle", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, NULL);
+	xTaskCreate(Teclado, "Teclas", configMINIMAL_STACK_SIZE,NULL, tskIDLE_PRIORITY + 2, NULL);
+	xTaskCreate(Cronometro, "Cronometros", configMINIMAL_STACK_SIZE,NULL, tskIDLE_PRIORITY + 1, NULL);
+
 	/* Arranque del sistema operativo */
 	vTaskStartScheduler();
 

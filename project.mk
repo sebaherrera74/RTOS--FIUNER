@@ -14,7 +14,7 @@
 # Project path
  PROJECT_PATH =projects
 # Project name
- PROJECT_NAME =eventos
+ PROJECT_NAME =tp2-cronometrobasico
  
  
 
