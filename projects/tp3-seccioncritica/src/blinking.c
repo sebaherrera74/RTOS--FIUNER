@@ -65,6 +65,7 @@
 /* === Inclusiones de cabeceras ============================================ */
 #include "FreeRTOS.h"
 #include "task.h"
+#include "semphr.h"
 #include "soc.h"
 #include "led.h"
 #include "switch.h"
@@ -103,8 +104,9 @@ typedef struct {
 	uint8_t minutos;
 } tiempo_t;
 
-tiempo_t tiempo;
-tiempo_t tiempoParcial;
+tiempo_t tiempo, tiempoParcial;
+
+SemaphoreHandle_t mutex;
 /* === Definiciones de variables externas ================================== */
 
 /* === Definiciones de funciones internas ================================== */
@@ -185,6 +187,7 @@ void Cronometro(void * parametros)
 
 		if (!detenido)
 		{
+			xSemaphoreTake(mutex,portMAX_DELAY);
 			tiempo.decimas++;
 			if(tiempo.decimas>=10){
 				tiempo.decimas=0;
@@ -197,6 +200,8 @@ void Cronometro(void * parametros)
 			if (tiempo.minutos==60){
 				tiempo.minutos=0;
 			}
+			xSemaphoreGive(mutex);
+
 		}
 		else{
 			if(!poneCero){
@@ -224,7 +229,9 @@ void Display(void * parametros)
 
 		sprintf(muestrahora,"%02d:%02d:%02d",tiempo.minutos,tiempo.segundos,tiempo.decimas);
 		sprintf(muestrahoraparcial,"%02d:%02d:%02d",tiempoParcial.minutos,tiempoParcial.segundos,tiempoParcial.decimas);
+		xSemaphoreTake(mutex,portMAX_DELAY);
 		ILI9341DrawString(100, 25, muestrahora, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
+		xSemaphoreGive(mutex);
 		ILI9341DrawString(100, 140, muestrahoraparcial, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
 		vTaskDelay(10/ portTICK_PERIOD_MS);
 	}
@@ -254,6 +261,9 @@ int main(void)
 	ILI9341Rotate(ILI9341_Landscape_1);
     //ILI9341DrawString(50, 25, horaprueba, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
     SisTick_Init();
+
+
+    mutex=xSemaphoreCreateMutex();
 	/* Creación de las tareas */
 	xTaskCreate(Blinking,  "Toggle", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, NULL);
 	xTaskCreate(Teclado,   "Teclas", configMINIMAL_STACK_SIZE,NULL, tskIDLE_PRIORITY + 2, NULL);

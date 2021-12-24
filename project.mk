@@ -14,8 +14,7 @@
 # Project path
  PROJECT_PATH =projects
 # Project name
- PROJECT_NAME =tp2-cronometrobasico
- 
+ PROJECT_NAME =tp3-seccioncritica
 
 # ---------- Your paths: -----------------------------------------------
 # Project path
