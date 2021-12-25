@@ -14,7 +14,7 @@
 # Project path
  PROJECT_PATH =projects
 # Project name
- PROJECT_NAME =tp3-seccioncritica
+ PROJECT_NAME =eventos2
 
 # ---------- Your paths: -----------------------------------------------
 # Project path
