@@ -33,18 +33,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-///----------Requerimientos del Trabajo-------------------
-/*---El botón TEC1 debe iniciar y detener la cuenta.
------El botón TEC2 debe volver la cuenta a cero solo si esta detenido.
------Mientras la cuenta esta corriendo deben parpadear el led RGB en
-     verde.
------Mientras la cuenta esta detenida el led RGB debe permanecer en rojo.
------Si el cronometro esta funcionando y la cuenta se muestra en la
-     pantalla la tecla TEC3 debe congelar el tiempo parcial y mantener la
-     cuenta activa.
------Si se esta mostrando un tiempo parcial la tecla TEC3 debe volver a
-     mostrar la cuenta actual de cronometro.*/
-
 /** @file blinking.c
  **
  ** @brief Ejemplo de un led parpadeando
@@ -69,26 +57,20 @@
 #include "soc.h"
 #include "led.h"
 #include "switch.h"
-#include "chip.h"
-#include "ili9341.h"
-#include "event_groups.h"
-#include <string.h>
-#include <stdio.h>
-
 /* === Definicion y Macros ================================================= */
-#define SPI_1   1  /*!< EDU-CIAA SPI port */
-#define GPIO_0  0 /*!< EDU-CIAA GPIO0 port */
-#define GPIO_6  6 /*!< EDU-CIAA GPIO1 port */
-#define GPIO_7  7 /*!< EDU-CIAA GPIO2 port */
-#define EVENTO_TECLA_1_ON 	( 1 << 0 )
-#define EVENTO_TECLA_2_ON 	( 1 << 1 )
-#define EVENTO_TECLA_3_ON 	( 1 << 2 )
-#define EVENTO_TECLA_4_ON 	( 1 << 3 )
-#define EVENTO_TECLA_1_OFF ( 1 << 4 )
-#define EVENTO_TECLA_2_OFF ( 1 << 5 )
-#define EVENTO_TECLA_3_OFF ( 1 << 6 )
-#define EVENTO_TECLA_4_OFF ( 1 << 7 )
+
 /* === Declaraciones de tipos de datos internos ============================ */
+/*Estructura para pasar por parametros a la tarea de prende y apaga led*/
+typedef struct {
+	uint8_t led ;	/* * < Led que debe parpadear la tarea */
+	uint16_t delay ; /* * < Demora entre cada encendido*/
+	SemaphoreHandle_t semaforoRojo;
+	SemaphoreHandle_t semaforoAzul;
+
+}blinking_t;
+
+
+
 
 /* === Declaraciones de funciones internas ================================= */
 
@@ -98,50 +80,35 @@
  **                           y la demora entre encendido y apagado.
  */ 
 void Blinking(void * parametros);
-void Teclado(void * parametros);
-void Cronometro(void * parametros);
-void PuestaCero(void * parametros);
-void Display(void * parametros);
+void Teclas(void * parametros);
 
 /* === Definiciones de variables internas ================================== */
-
-typedef struct {
-	uint8_t decimas;
-	uint8_t segundos;
-	uint8_t minutos;
-} tiempo_t;
-
-tiempo_t tiempoParcial;
-
-SemaphoreHandle_t mutex;
-EventGroupHandle_t eventos;
-EventBits_t uxBits;
-
+//SemaphoreHandle_t semaforo;
 
 /* === Definiciones de variables externas ================================== */
 
 /* === Definiciones de funciones internas ================================== */
 
 void Blinking(void * parametros) {
-	//blinking_t * valores = parametros;
-
+	blinking_t * valores = parametros;
 
 	while(1) {
-		if ( (uxBits & EVENTO_TECLA_1_ON ) != 0) {
-			Led_On( RGB_R_LED);
-			Led_Off(RGB_G_LED);
-		}
-		else{
-			Led_Off(RGB_R_LED);
-			//Led_Toggle(RGB_G_LED);
+		xSemaphoreTake(valores->semaforoRojo,portMAX_DELAY);
+		Led_On(valores->led);
+		vTaskDelay(valores->delay/ portTICK_PERIOD_MS);
+		Led_Off(valores->led);
+		vTaskDelay(valores->delay/ portTICK_PERIOD_MS);
 
-		}
-		vTaskDelay(500/ portTICK_PERIOD_MS);
 	}
 }
 
-void Teclado(void * parametros)
+
+
+
+void Teclas(void * parametros)
 {
+	blinking_t * valores = parametros;
+
 	uint8_t actual;
 	uint8_t anterior=0;
 	uint32_t contador=0;
@@ -154,16 +121,13 @@ void Teclado(void * parametros)
 			if(( actual^anterior) & TECLA1)
 			{
 				if (actual & TECLA1){
-					xEventGroupSetBits(eventos, EVENTO_TECLA_1_ON);
-					contador++;
-					if ((contador%2)==0){
-						xEventGroupClearBits (eventos,  EVENTO_TECLA_1_ON);
+					xSemaphoreGive(valores->semaforoRojo);
 					}
 				}
 
 				/*else
 				{
-					xEventGroupSetBits(eventos, EVENTO_TECLA_1_OFF);
+
 				}*/
 			}
 			if(( actual^anterior) & TECLA2)
@@ -171,25 +135,23 @@ void Teclado(void * parametros)
 				if (actual & TECLA2)
 				{
 
-					if ((contador%2)==0){
-						xEventGroupSetBits(eventos, EVENTO_TECLA_2_ON);
 
 					}
 				}
 				else
 				{
-					xEventGroupSetBits(eventos, EVENTO_TECLA_2_OFF);
+
 				}
-			}
+
 			if(( actual^anterior) & TECLA3)
 			{
 				if (actual & TECLA3)
 				{
-					xEventGroupSetBits(eventos, EVENTO_TECLA_3_ON);
+
 				}
 				else
 				{
-					xEventGroupSetBits(eventos, EVENTO_TECLA_3_OFF);
+
 				}
 			}
 			anterior=actual;
@@ -198,75 +160,7 @@ void Teclado(void * parametros)
 
 		vTaskDelay(50/ portTICK_PERIOD_MS);
 		}
-}
-void Cronometro(void * parametros)
-{
-	tiempo_t *argumentos=parametros;
-	TickType_t anterior;
-	anterior=xTaskGetTickCount();
-	EventBits_t uxbits;
 
-	while(1)
-	{
-		vTaskDelayUntil(&anterior,100/ portTICK_PERIOD_MS);
-		uxbits=xEventGroupWaitBits(eventos, EVENTO_TECLA_1_ON, pdFALSE, pdTRUE,portMAX_DELAY);
-		//vTaskDelayUntil(&anterior,100/ portTICK_PERIOD_MS);
-		//xSemaphoreTake(mutex,portMAX_DELAY);
-		if (uxbits){
-			argumentos->decimas++;
-			Led_Toggle(RGB_G_LED);
-			if(argumentos->decimas>=10){
-				argumentos->decimas=0;
-				argumentos->segundos++;
-			}
-			if(argumentos->segundos>=60){
-				argumentos->segundos=0;
-				argumentos->minutos++;
-			}
-			if (argumentos->minutos==60){
-				argumentos->minutos=0;
-			}
-
-
-		}
-
-		//xSemaphoreGive(mutex);
-
-	}
-}
-
-/*void PuestaCero(void * parametros)
-{
-	while(1)
-		{
-		xEventGroupWaitBits(eventos, EVENTO_TECLA_2_ON, pdTRUE, pdTRUE,portMAX_DELAY);
-		tiempo.decimas=0;
-		tiempo.segundos=0;
-		tiempo.minutos=0;
-		}
-}*/
-
-void Display(void * parametros)
-{
-
-	tiempo_t *argumentos=parametros;
-
-	static char muestrahora[9];
-	char muestrahoraparcial[9];
-	while(1) {
-		//xSemaphoreTake(mutex,portMAX_DELAY);
-		sprintf(muestrahora,"%02d:%02d:%02d",argumentos->minutos,argumentos->segundos,argumentos->decimas);
-		//sprintf(muestrahoraparcial,"%02d:%02d:%02d",tiempoParcial.minutos,tiempoParcial.segundos,tiempoParcial.decimas);
-		ILI9341DrawString(100, 25, muestrahora, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
-		//xSemaphoreGive(mutex);
-		//ILI9341DrawString(100, 140, muestrahoraparcial, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
-
-		vTaskDelay(10/ portTICK_PERIOD_MS);
-	}
-
-
-
-}
 
 
 /* === Definiciones de funciones externas ================================== */
@@ -278,26 +172,30 @@ void Display(void * parametros)
  ** @remarks En un sistema embebido la función main() nunca debe terminar.
  **          El valor de retorno 0 es para evitar un error en el compilador.
  */
-int main(void)
-{
-	tiempo_t *param;
+int main(void) {
+	semaforoRojo=xSemaphoreCreateCounting(1000,0);
+
+	/* Variable con los parametros de las tareas */
+	static blinking_t valores[]={
+			{.led =RGB_B_LED, .delay = 500},
+			{.led =RGB_R_LED, .delay =300},
+			{.semaforoRojo=semaforoRojo}
+	};
+
+
+
 
 	/* Inicializaciones y configuraciones de dispositivos */
-	Init_Leds();
-	ILI9341Init(SPI_1, GPIO_0, GPIO_6, GPIO_7);
-	ILI9341Rotate(ILI9341_Landscape_1);
-	//ILI9341DrawString(50, 25, horaprueba, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
+
 	SisTick_Init();
+	Init_Leds();
 
 
-	mutex=xSemaphoreCreateMutex();
-	eventos=xEventGroupCreate();
+
 	/* Creación de las tareas */
-	xTaskCreate(Blinking,  "Toggle", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, NULL);
-	xTaskCreate(Teclado,   "Teclas", configMINIMAL_STACK_SIZE,NULL, tskIDLE_PRIORITY + 1, NULL);
-	xTaskCreate(Cronometro,"Cronometros", 1024,&param, tskIDLE_PRIORITY + 1,NULL);
-	//	xTaskCreate(PuestaCero,"pone a cero ", configMINIMAL_STACK_SIZE,NULL, tskIDLE_PRIORITY + 1,NULL);
-	xTaskCreate(Display,"display", 1024,&param, tskIDLE_PRIORITY + 1, NULL);
+	xTaskCreate(Blinking, "Azul", configMINIMAL_STACK_SIZE, &valores[0], tskIDLE_PRIORITY + 1, NULL);
+	xTaskCreate(Blinking, "Rojo", configMINIMAL_STACK_SIZE, &valores[1], tskIDLE_PRIORITY + 1, NULL);
+	xTaskCreate(Teclas, "Teclas ", configMINIMAL_STACK_SIZE, &valores[2], tskIDLE_PRIORITY + 1, NULL);
 
 	/* Arranque del sistema operativo */
 	vTaskStartScheduler();
