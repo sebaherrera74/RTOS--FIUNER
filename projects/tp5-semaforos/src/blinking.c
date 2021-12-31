@@ -60,17 +60,6 @@
 /* === Definicion y Macros ================================================= */
 
 /* === Declaraciones de tipos de datos internos ============================ */
-/*Estructura para pasar por parametros a la tarea de prende y apaga led*/
-typedef struct {
-	uint8_t led ;	/* * < Led que debe parpadear la tarea */
-	uint16_t delay ; /* * < Demora entre cada encendido*/
-	SemaphoreHandle_t semaforoRojo;
-	SemaphoreHandle_t semaforoAzul;
-
-}blinking_t;
-
-
-
 
 /* === Declaraciones de funciones internas ================================= */
 
@@ -83,21 +72,21 @@ void Blinking(void * parametros);
 void Teclas(void * parametros);
 
 /* === Definiciones de variables internas ================================== */
-//SemaphoreHandle_t semaforo;
-
+SemaphoreHandle_t semaforoBlue;
+SemaphoreHandle_t semaforoLed1;
 /* === Definiciones de variables externas ================================== */
 
 /* === Definiciones de funciones internas ================================== */
 
 void Blinking(void * parametros) {
-	blinking_t * valores = parametros;
+
 
 	while(1) {
-		xSemaphoreTake(valores->semaforoRojo,portMAX_DELAY);
-		Led_On(valores->led);
-		vTaskDelay(valores->delay/ portTICK_PERIOD_MS);
-		Led_Off(valores->led);
-		vTaskDelay(valores->delay/ portTICK_PERIOD_MS);
+		xSemaphoreTake(semaforoBlue,portMAX_DELAY);
+		Led_On(RGB_B_LED);
+		vTaskDelay(2000/portTICK_PERIOD_MS);
+		Led_Off(RGB_B_LED);
+		vTaskDelay(2000/ portTICK_PERIOD_MS);
 
 	}
 }
@@ -107,8 +96,6 @@ void Blinking(void * parametros) {
 
 void Teclas(void * parametros)
 {
-	blinking_t * valores = parametros;
-
 	uint8_t actual;
 	uint8_t anterior=0;
 	uint32_t contador=0;
@@ -121,7 +108,7 @@ void Teclas(void * parametros)
 			if(( actual^anterior) & TECLA1)
 			{
 				if (actual & TECLA1){
-					xSemaphoreGive(valores->semaforoRojo);
+					xSemaphoreGive(semaforoBlue);
 					}
 				}
 
@@ -173,29 +160,20 @@ void Teclas(void * parametros)
  **          El valor de retorno 0 es para evitar un error en el compilador.
  */
 int main(void) {
-	semaforoRojo=xSemaphoreCreateCounting(1000,0);
-
-	/* Variable con los parametros de las tareas */
-	static blinking_t valores[]={
-			{.led =RGB_B_LED, .delay = 500},
-			{.led =RGB_R_LED, .delay =300},
-			{.semaforoRojo=semaforoRojo}
-	};
-
-
-
 
 	/* Inicializaciones y configuraciones de dispositivos */
 
 	SisTick_Init();
 	Init_Leds();
+    Init_Switches();
 
+    semaforoBlue=xSemaphoreCreateCounting(1000,0);
 
 
 	/* Creación de las tareas */
-	xTaskCreate(Blinking, "Azul", configMINIMAL_STACK_SIZE, &valores[0], tskIDLE_PRIORITY + 1, NULL);
-	xTaskCreate(Blinking, "Rojo", configMINIMAL_STACK_SIZE, &valores[1], tskIDLE_PRIORITY + 1, NULL);
-	xTaskCreate(Teclas, "Teclas ", configMINIMAL_STACK_SIZE, &valores[2], tskIDLE_PRIORITY + 1, NULL);
+	xTaskCreate(Blinking, "Azul", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, NULL);
+	xTaskCreate(Blinking, "Rojo", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, NULL);
+	xTaskCreate(Teclas, "Teclas ", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, NULL);
 
 	/* Arranque del sistema operativo */
 	vTaskStartScheduler();
