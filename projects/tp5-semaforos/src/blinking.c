@@ -84,9 +84,12 @@ void Blinking(void * parametros) {
 	while(1) {
 		xSemaphoreTake(semaforoBlue,portMAX_DELAY);
 		Led_On(RGB_B_LED);
-		vTaskDelay(2000/portTICK_PERIOD_MS);
+		vTaskDelay(500/portTICK_PERIOD_MS);
 		Led_Off(RGB_B_LED);
-		vTaskDelay(2000/ portTICK_PERIOD_MS);
+		vTaskDelay(500/ portTICK_PERIOD_MS);
+
+
+
 
 	}
 }
@@ -98,91 +101,88 @@ void Teclas(void * parametros)
 {
 	uint8_t actual;
 	uint8_t anterior=0;
-	uint32_t contador=0;
+	uint8_t cambios;
 	while(1)
 	{
 		actual=Read_Switches();
-		if (actual!=anterior)
+		cambios=actual^anterior;
+		if(cambios & TECLA1)
 		{
-
-			if(( actual^anterior) & TECLA1)
-			{
-				if (actual & TECLA1){
-					xSemaphoreGive(semaforoBlue);
-					}
-				}
-
-				/*else
-				{
-
-				}*/
+			if (actual & TECLA1){
+				xSemaphoreGive(semaforoBlue);
 			}
-			if(( actual^anterior) & TECLA2)
-			{
-				if (actual & TECLA2)
-				{
-
-
-					}
-				}
-				else
-				{
-
-				}
-
-			if(( actual^anterior) & TECLA3)
-			{
-				if (actual & TECLA3)
-				{
-
-				}
-				else
-				{
-
-				}
-			}
-			anterior=actual;
-			vTaskDelay(100/ portTICK_PERIOD_MS);
 		}
 
-		vTaskDelay(50/ portTICK_PERIOD_MS);
+		/*else
+				{
+
+			}*/
+		if(cambios & TECLA2)
+		{
+			if (actual & TECLA2)
+			{
+				xSemaphoreGive(semaforoBlue);
+				xSemaphoreGive(semaforoBlue);
+
+			}
+
+			else
+			{
+
+		    }
+		}
+		if(cambios & TECLA3)
+		{
+			if (actual & TECLA3)
+			{
+
+			}
+			else
+			{
+
+			}
 		}
 
-
-
-/* === Definiciones de funciones externas ================================== */
-
-/** @brief Función principal del programa
- **
- ** @returns 0 La función nunca debería termina
- **
- ** @remarks En un sistema embebido la función main() nunca debe terminar.
- **          El valor de retorno 0 es para evitar un error en el compilador.
- */
-int main(void) {
-
-	/* Inicializaciones y configuraciones de dispositivos */
-
-	SisTick_Init();
-	Init_Leds();
-    Init_Switches();
-
-    semaforoBlue=xSemaphoreCreateCounting(1000,0);
-
-
-	/* Creación de las tareas */
-	xTaskCreate(Blinking, "Azul", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, NULL);
-	xTaskCreate(Blinking, "Rojo", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, NULL);
-	xTaskCreate(Teclas, "Teclas ", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, NULL);
-
-	/* Arranque del sistema operativo */
-	vTaskStartScheduler();
-
-	/* vTaskStartScheduler solo retorna si se detiene el sistema operativo */
-	while(1);
-
-	/* El valor de retorno es solo para evitar errores en el compilador*/
-	return 0;
+		anterior=actual;
+		vTaskDelay(100/ portTICK_PERIOD_MS);
+	}
 }
-/* === Ciere de documentacion ============================================== */
-/** @} Final de la definición del modulo para doxygen */
+
+
+
+	/* === Definiciones de funciones externas ================================== */
+
+	/** @brief Función principal del programa
+	 **
+	 ** @returns 0 La función nunca debería termina
+	 **
+	 ** @remarks En un sistema embebido la función main() nunca debe terminar.
+	 **          El valor de retorno 0 es para evitar un error en el compilador.
+	 */
+	int main(void) {
+
+		/* Inicializaciones y configuraciones de dispositivos */
+
+		SisTick_Init();
+		Init_Leds();
+		Init_Switches();
+
+		semaforoBlue=xSemaphoreCreateCounting(1000,0);
+
+
+		/* Creación de las tareas */
+		xTaskCreate(Blinking, "Azul", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, NULL);
+
+		xTaskCreate(Teclas, "Teclas ", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, NULL);
+
+		/* Arranque del sistema operativo */
+		vTaskStartScheduler();
+
+		/* vTaskStartScheduler solo retorna si se detiene el sistema operativo */
+		while(1);
+
+		/* El valor de retorno es solo para evitar errores en el compilador*/
+		return 0;
+	}
+	/* === Ciere de documentacion ============================================== */
+	/** @} Final de la definición del modulo para doxygen */
