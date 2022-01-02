@@ -54,12 +54,19 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "semphr.h"
+#include "queue.h"
 #include "soc.h"
 #include "led.h"
 #include "switch.h"
 /* === Definicion y Macros ================================================= */
 
 /* === Declaraciones de tipos de datos internos ============================ */
+typedef struct mensaje_s{
+	uint8_t led ;	/* * < Led que debe parpadear la tarea */
+	uint16_t tiempo ; /* * < Demora entre cada encendido*/
+}*mensaje_t;
+
+QueueHandle_t cola;
 
 /* === Declaraciones de funciones internas ================================= */
 
@@ -72,21 +79,23 @@ void Blinking(void * parametros);
 void Teclas(void * parametros);
 
 /* === Definiciones de variables internas ================================== */
-SemaphoreHandle_t semaforoBlue;
-SemaphoreHandle_t semaforoLed1;
+
+
+
+
 /* === Definiciones de variables externas ================================== */
 
 /* === Definiciones de funciones internas ================================== */
 
 void Blinking(void * parametros) {
-
+	struct mensaje_s mensajeRecibido;
 
 	while(1) {
-		xSemaphoreTake(semaforoBlue,portMAX_DELAY);
-		Led_On(RGB_B_LED);
-		vTaskDelay(500/portTICK_PERIOD_MS);
-		Led_Off(RGB_B_LED);
-		vTaskDelay(500/ portTICK_PERIOD_MS);
+		xQueueReceive(cola,&mensajeRecibido,portMAX_DELAY);
+		Led_On(mensajeRecibido.led);
+		vTaskDelay(mensajeRecibido.tiempo/portTICK_PERIOD_MS);
+		Led_Off(mensajeRecibido.led);
+		vTaskDelay(mensajeRecibido.tiempo/ portTICK_PERIOD_MS);
 
 
 
@@ -102,6 +111,8 @@ void Teclas(void * parametros)
 	uint8_t actual;
 	uint8_t anterior=0;
 	uint8_t cambios;
+	struct mensaje_s mensaje;
+
 	while(1)
 	{
 		actual=Read_Switches();
@@ -109,7 +120,10 @@ void Teclas(void * parametros)
 		if(cambios & TECLA1)
 		{
 			if (actual & TECLA1){
-				xSemaphoreGive(semaforoBlue);
+				mensaje.led=RGB_B_LED;
+				mensaje.tiempo=500;
+				xQueueSend(cola,&mensaje,portMAX_DELAY);
+
 			}
 		}/*else
 				{
@@ -118,9 +132,12 @@ void Teclas(void * parametros)
 		{
 			if (actual & TECLA2)
 			{
-				xSemaphoreGive(semaforoBlue);
+				mensaje.led=RGB_R_LED;
+				mensaje.tiempo=1000;
+				xQueueSend(cola,&mensaje,portMAX_DELAY);
+
 			}else{
-				}
+			}
 		}
 		if(cambios & TECLA3)
 		{
@@ -128,7 +145,7 @@ void Teclas(void * parametros)
 			{
 
 			}else{
-				}
+			}
 		}
 		anterior=actual;
 		vTaskDelay(100/ portTICK_PERIOD_MS);
@@ -137,39 +154,37 @@ void Teclas(void * parametros)
 
 
 
-	/* === Definiciones de funciones externas ================================== */
+/* === Definiciones de funciones externas ================================== */
 
-	/** @brief Función principal del programa
-	 **
-	 ** @returns 0 La función nunca debería termina
-	 **
-	 ** @remarks En un sistema embebido la función main() nunca debe terminar.
-	 **          El valor de retorno 0 es para evitar un error en el compilador.
-	 */
-	int main(void) {
+/** @brief Función principal del programa
+ **
+ ** @returns 0 La función nunca debería termina
+ **
+ ** @remarks En un sistema embebido la función main() nunca debe terminar.
+ **          El valor de retorno 0 es para evitar un error en el compilador.
+ */
+int main(void) {
 
-		/* Inicializaciones y configuraciones de dispositivos */
+	/* Inicializaciones y configuraciones de dispositivos */
 
-		SisTick_Init();
-		Init_Leds();
-		Init_Switches();
+	SisTick_Init();
+	Init_Leds();
+	Init_Switches();
 
-		semaforoBlue=xSemaphoreCreateCounting(1000,0);
+	cola=xQueueCreate(8,sizeof(struct mensaje_s));
+	/* Creación de las tareas */
+	xTaskCreate(Blinking, "Azul", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, NULL);
 
+	xTaskCreate(Teclas, "Teclas ", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, NULL);
 
-		/* Creación de las tareas */
-		xTaskCreate(Blinking, "Azul", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, NULL);
+	/* Arranque del sistema operativo */
+	vTaskStartScheduler();
 
-		xTaskCreate(Teclas, "Teclas ", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, NULL);
+	/* vTaskStartScheduler solo retorna si se detiene el sistema operativo */
+	while(1);
 
-		/* Arranque del sistema operativo */
-		vTaskStartScheduler();
-
-		/* vTaskStartScheduler solo retorna si se detiene el sistema operativo */
-		while(1);
-
-		/* El valor de retorno es solo para evitar errores en el compilador*/
-		return 0;
-	}
-	/* === Ciere de documentacion ============================================== */
-	/** @} Final de la definición del modulo para doxygen */
+	/* El valor de retorno es solo para evitar errores en el compilador*/
+	return 0;
+}
+/* === Ciere de documentacion ============================================== */
+/** @} Final de la definición del modulo para doxygen */
