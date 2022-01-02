@@ -115,8 +115,8 @@ typedef struct tiempo_s {
 
 SemaphoreHandle_t mutex;
 EventGroupHandle_t eventos;
-EventBits_t uxBits;
 
+//tiempo_t tiempo;
 
 /* === Definiciones de variables externas ================================== */
 
@@ -124,19 +124,22 @@ EventBits_t uxBits;
 
 void Blinking(void * parametros) {
 	//blinking_t * valores = parametros;
-
+	EventBits_t uxBits;
 
 	while(1) {
-		if ( (uxBits & EVENTO_TECLA_1_ON ) != 0) {
-			Led_On( RGB_R_LED);
-			Led_Off(RGB_G_LED);
+		uxBits=xEventGroupWaitBits(eventos, EVENTO_TECLA_1_ON, pdFALSE, pdTRUE,100/ portTICK_PERIOD_MS);
+		if(	uxBits)
+		{
+			Led_Toggle(RGB_R_LED);
+			Led_Off(RGB_B_LED);
 		}
+
 		else{
 			Led_Off(RGB_R_LED);
-			//Led_Toggle(RGB_G_LED);
+			Led_On(RGB_B_LED);
 
 		}
-		vTaskDelay(500/ portTICK_PERIOD_MS);
+		vTaskDelay(300/ portTICK_PERIOD_MS);
 	}
 }
 
@@ -151,97 +154,93 @@ void Teclado(void * parametros)
 		actual=Read_Switches();
 		cambios=actual^anterior;
 
-			if(( actual^anterior) & TECLA1)
-			{
-				if (actual & TECLA1){
-					xEventGroupSetBits(eventos, EVENTO_TECLA_1_ON);
-					contador++;
-					if ((contador%2)==0){
-						xEventGroupClearBits (eventos,  EVENTO_TECLA_1_ON);
-					}
+		if(cambios & TECLA1)
+		{
+			if (actual & TECLA1){
+				xEventGroupSetBits(eventos, EVENTO_TECLA_1_ON);
+				contador++;
+				if ((contador%2)==0){
+					xEventGroupClearBits (eventos,  EVENTO_TECLA_1_ON);
 				}
+			}
 
-				/*else
+			/*else
 				{
 					xEventGroupSetBits(eventos, EVENTO_TECLA_1_OFF);
 				}*/
-			}
-			if(( actual^anterior) & TECLA2)
-			{
-				if (actual & TECLA2)
-				{
-					if ((contador%2)==0){
-						xEventGroupSetBits(eventos, EVENTO_TECLA_2_ON);
-					}
-				}
-				else
-				{
-					xEventGroupSetBits(eventos, EVENTO_TECLA_2_OFF);
-				}
-			}
-			if(( actual^anterior) & TECLA3)
-			{
-				if (actual & TECLA3)
-				{
-					xEventGroupSetBits(eventos, EVENTO_TECLA_3_ON);
-				}
-				else
-				{
-					xEventGroupSetBits(eventos, EVENTO_TECLA_3_OFF);
-				}
-			}
-			anterior=actual;
-			vTaskDelay(100/ portTICK_PERIOD_MS);
-
-
-		//vTaskDelay(50/ portTICK_PERIOD_MS);
 		}
+		if(cambios & TECLA2)
+		{
+			if (actual & TECLA2)
+			{
+				if ((contador%2)==0){
+					xEventGroupSetBits(eventos, EVENTO_TECLA_2_ON);
+				}
+			}
+			else
+			{
+				xEventGroupSetBits(eventos, EVENTO_TECLA_2_OFF);
+			}
+		}
+		if(cambios & TECLA3)
+		{
+			if (actual & TECLA3)
+			{
+				xEventGroupSetBits(eventos, EVENTO_TECLA_3_ON);
+			}
+			else
+			{
+				xEventGroupSetBits(eventos, EVENTO_TECLA_3_OFF);
+			}
+		}
+		anterior=actual;
+		vTaskDelay(100/ portTICK_PERIOD_MS);
+	}
 }
 void Cronometro(void * parametros)
 {
 	tiempo_t * argumentos=(tiempo_t *)parametros;
 	TickType_t anterior;
 	anterior=xTaskGetTickCount();
-	EventBits_t uxbits;
 
 	while(1)
 	{
 		vTaskDelayUntil(&anterior,100/ portTICK_PERIOD_MS);
-		uxbits=xEventGroupWaitBits(eventos, EVENTO_TECLA_1_ON, pdFALSE, pdTRUE,portMAX_DELAY);
-		//vTaskDelayUntil(&anterior,100/ portTICK_PERIOD_MS);
-		//xSemaphoreTake(mutex,portMAX_DELAY);
-		if (uxbits){
-			argumentos->decimas++;
-			Led_Toggle(RGB_G_LED);
-			if(argumentos->decimas>=10){
-				argumentos->decimas=0;
-				argumentos->segundos++;
-			}
-			if(argumentos->segundos>=60){
-				argumentos->segundos=0;
-				argumentos->minutos++;
-			}
-			if (argumentos->minutos==60){
-				argumentos->minutos=0;
-			}
-			anterior=xTaskGetTickCount();
-		}
+		xEventGroupWaitBits(eventos, EVENTO_TECLA_1_ON, pdFALSE, pdTRUE,portMAX_DELAY);
+		xSemaphoreTake(mutex,portMAX_DELAY);
 
-		//xSemaphoreGive(mutex);
+		argumentos->decimas++;
+		//Led_Toggle(RGB_G_LED);
+		if(argumentos->decimas>=10){
+			argumentos->decimas=0;
+			argumentos->segundos++;
+		}
+		if(argumentos->segundos>=60){
+			argumentos->segundos=0;
+			argumentos->minutos++;
+		}
+		if (argumentos->minutos==60){
+			argumentos->minutos=0;
+		}
+		anterior=xTaskGetTickCount();
+		xSemaphoreGive(mutex);
 
 	}
 }
 
-/*void PuestaCero(void * parametros)
+void PuestaCero(void * parametros)
 {
+	tiempo_t *argumentos=(tiempo_t *)parametros;
+
+
 	while(1)
-		{
+	{
 		xEventGroupWaitBits(eventos, EVENTO_TECLA_2_ON, pdTRUE, pdTRUE,portMAX_DELAY);
-		tiempo.decimas=0;
-		tiempo.segundos=0;
-		tiempo.minutos=0;
-		}
-}*/
+		argumentos->decimas=0;
+		argumentos->segundos=0;
+		argumentos->minutos=0;
+	}
+}
 
 void Display(void * parametros)
 {
@@ -277,7 +276,7 @@ void Display(void * parametros)
  */
 int main(void)
 {
-	tiempo_t param={.decimas=0,.segundos=0,.minutos=0};
+	tiempo_t tiempo={.decimas=0,.segundos=0,.minutos=0};
 
 	/* Inicializaciones y configuraciones de dispositivos */
 	Init_Leds();
@@ -292,9 +291,9 @@ int main(void)
 	/* Creación de las tareas */
 	xTaskCreate(Blinking,  "Toggle", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, NULL);
 	xTaskCreate(Teclado,   "Teclas", configMINIMAL_STACK_SIZE,NULL, tskIDLE_PRIORITY + 3, NULL);
-	xTaskCreate(Cronometro,"Cronometros", 1024,(void*)&param, tskIDLE_PRIORITY + 2,NULL);
-	//	xTaskCreate(PuestaCero,"pone a cero ", configMINIMAL_STACK_SIZE,NULL, tskIDLE_PRIORITY + 1,NULL);
-	xTaskCreate(Display,"display", 1024,(void*)&param, tskIDLE_PRIORITY + 4, NULL);
+	xTaskCreate(Cronometro,"Cronometros", configMINIMAL_STACK_SIZE,(void*)&tiempo, tskIDLE_PRIORITY + 2,NULL);
+	xTaskCreate(PuestaCero,"Puesta a cero ", configMINIMAL_STACK_SIZE,(void*)&tiempo, tskIDLE_PRIORITY + 1,NULL);
+	xTaskCreate(Display,"Display", configMINIMAL_STACK_SIZE*4,(void*)&tiempo, tskIDLE_PRIORITY + 4, NULL);
 
 	/* Arranque del sistema operativo */
 	vTaskStartScheduler();
