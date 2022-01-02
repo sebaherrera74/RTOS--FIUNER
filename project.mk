@@ -14,7 +14,7 @@
 # Project path
  PROJECT_PATH =projects
 # Project name
- PROJECT_NAME =ejemplocola
+ PROJECT_NAME =tp4-eventos
  
  
  

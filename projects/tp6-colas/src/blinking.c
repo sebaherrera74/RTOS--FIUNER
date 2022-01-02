@@ -102,6 +102,7 @@ void Teclado(void * parametros);
 void Cronometro(void * parametros);
 void PuestaCero(void * parametros);
 void Display(void * parametros);
+void ValoresParciales(void *parametros);
 
 /* === Definiciones de variables internas ================================== */
 
@@ -116,8 +117,8 @@ typedef struct tiempo_s {
 SemaphoreHandle_t mutex;
 EventGroupHandle_t eventos;
 EventBits_t uxBits;
-
-
+tiempo_t  tiempo;
+QueueHandle_t cola;
 /* === Definiciones de variables externas ================================== */
 
 /* === Definiciones de funciones internas ================================== */
@@ -199,7 +200,7 @@ void Teclado(void * parametros)
 }
 void Cronometro(void * parametros)
 {
-	tiempo_t * argumentos=(tiempo_t *)parametros;
+    struct 	tiempo_s * argumentos= parametros;
 	TickType_t anterior;
 	anterior=xTaskGetTickCount();
 	EventBits_t uxbits;
@@ -212,6 +213,7 @@ void Cronometro(void * parametros)
 		//xSemaphoreTake(mutex,portMAX_DELAY);
 		if (uxbits){
 			argumentos->decimas++;
+
 			Led_Toggle(RGB_G_LED);
 			if(argumentos->decimas>=10){
 				argumentos->decimas=0;
@@ -224,9 +226,12 @@ void Cronometro(void * parametros)
 			if (argumentos->minutos==60){
 				argumentos->minutos=0;
 			}
-			anterior=xTaskGetTickCount();
-		}
+			tiempo.decimas=argumentos->decimas;
+			tiempo.segundos=argumentos->segundos;
+			tiempo.minutos=argumentos->minutos;
 
+		}
+		anterior=xTaskGetTickCount();
 		//xSemaphoreGive(mutex);
 
 	}
@@ -243,22 +248,45 @@ void Cronometro(void * parametros)
 		}
 }*/
 
+void ValoresParciales(void *parametros){
+	struct tiempo_s mensaje;
+
+	while(1) {
+
+		xEventGroupWaitBits(eventos, EVENTO_TECLA_3_ON, pdTRUE, pdFALSE,portMAX_DELAY);
+		mensaje.decimas=tiempo.decimas;
+		mensaje.segundos=tiempo.segundos;
+		mensaje.minutos=tiempo.minutos;
+
+		xQueueSend(cola,&mensaje,portMAX_DELAY);
+		vTaskDelay(100/ portTICK_PERIOD_MS);
+	}
+
+
+}
+
 void Display(void * parametros)
 {
 
-	tiempo_t *argumentos=(tiempo_t*)parametros;
+	//tiempo_t *argumentos=(tiempo_t*)parametros;
+    struct tiempo_s mensajeRecibido;
+    mensajeRecibido.decimas=0;
+    mensajeRecibido.segundos=0;
+    mensajeRecibido.minutos=0;
 
 	static char muestrahora[9];
 	char muestrahoraparcial[9];
 	while(1) {
 		//xSemaphoreTake(mutex,portMAX_DELAY);
-		sprintf(muestrahora,"%02d:%02d:%02d",argumentos->minutos,argumentos->segundos,argumentos->decimas);
+		sprintf(muestrahora,"%02d:%02d:%02d",tiempo.minutos,tiempo.segundos,tiempo.decimas);
 		//sprintf(muestrahoraparcial,"%02d:%02d:%02d",tiempoParcial.minutos,tiempoParcial.segundos,tiempoParcial.decimas);
 		ILI9341DrawString(100, 25, muestrahora, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
-		//xSemaphoreGive(mutex);
-		//ILI9341DrawString(100, 140, muestrahoraparcial, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
 
-		vTaskDelay(100/ portTICK_PERIOD_MS);
+		xQueueReceive(cola,&mensajeRecibido,10/ portTICK_PERIOD_MS);
+		sprintf(muestrahoraparcial,"%02d:%02d:%02d",mensajeRecibido.minutos,mensajeRecibido.segundos,mensajeRecibido.decimas);
+		ILI9341DrawString(100, 140, muestrahoraparcial, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
+
+		vTaskDelay(10/ portTICK_PERIOD_MS);
 	}
 
 
@@ -289,13 +317,15 @@ int main(void)
 
 	mutex=xSemaphoreCreateMutex();
 	eventos=xEventGroupCreate();
+	cola=xQueueCreate(8,sizeof(struct tiempo_s));
+
 	/* Creación de las tareas */
 	xTaskCreate(Blinking,  "Toggle", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, NULL);
 	xTaskCreate(Teclado,   "Teclas", configMINIMAL_STACK_SIZE,NULL, tskIDLE_PRIORITY + 3, NULL);
 	xTaskCreate(Cronometro,"Cronometros", 1024,(void*)&param, tskIDLE_PRIORITY + 2,NULL);
 	//	xTaskCreate(PuestaCero,"pone a cero ", configMINIMAL_STACK_SIZE,NULL, tskIDLE_PRIORITY + 1,NULL);
 	xTaskCreate(Display,"display", 1024,(void*)&param, tskIDLE_PRIORITY + 4, NULL);
-
+	xTaskCreate(ValoresParciales,"Parciales",configMINIMAL_STACK_SIZE ,NULL, tskIDLE_PRIORITY + 1, NULL);
 	/* Arranque del sistema operativo */
 	vTaskStartScheduler();
 
