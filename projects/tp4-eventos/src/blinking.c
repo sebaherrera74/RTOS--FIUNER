@@ -208,7 +208,6 @@ void Cronometro(void * parametros)
 		vTaskDelayUntil(&anterior,100/ portTICK_PERIOD_MS);
 		xEventGroupWaitBits(eventos, EVENTO_TECLA_1_ON, pdFALSE, pdTRUE,portMAX_DELAY);
 		xSemaphoreTake(mutex,portMAX_DELAY);
-
 		argumentos->decimas++;
 		//Led_Toggle(RGB_G_LED);
 		if(argumentos->decimas>=10){
