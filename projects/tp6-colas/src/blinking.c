@@ -284,7 +284,7 @@ void Display(void * parametros)
 	char muestrahoraparcialdos[9]={0};
 	char muestrahoraparcialtres[9]={0};
 	char muestrahoraparcialcuatro[9]={0};
-	static uint8_t contadortiemposparciales=0;
+
 
 	while(1) {
 		//xSemaphoreTake(mutex,portMAX_DELAY);
@@ -294,52 +294,14 @@ void Display(void * parametros)
 		if(xQueueReceive(cola,&mensajeRecibido,10/ portTICK_PERIOD_MS)){
 
 			sprintf(muestrahoraparcialuno,"%02d:%02d:%02d",mensajeRecibido.minutos,mensajeRecibido.segundos,mensajeRecibido.decimas);
-
-			switch (contadortiemposparciales) {
-			case 0:
-				ILI9341DrawString(100,100, muestrahoraparcialuno, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
-				ILI9341DrawString(100,130, muestrahoraparcialdos, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
-				ILI9341DrawString(100,160, muestrahoraparcialtres, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
-				ILI9341DrawString(100,190, muestrahoraparcialcuatro, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
-				stpcpy(muestrahoraparcialcuatro, muestrahoraparcialtres);
-				stpcpy(muestrahoraparcialtres, muestrahoraparcialdos);
-				stpcpy(muestrahoraparcialdos, muestrahoraparcialuno);
-				break;
-			case 1:
-				ILI9341DrawString(100,100, muestrahoraparcialuno, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
-				ILI9341DrawString(100,130, muestrahoraparcialdos, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
-				ILI9341DrawString(100,160, muestrahoraparcialtres, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
-				ILI9341DrawString(100,190, muestrahoraparcialcuatro, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
-				stpcpy(muestrahoraparcialcuatro, muestrahoraparcialtres);
-				stpcpy(muestrahoraparcialtres, muestrahoraparcialdos);
-				stpcpy(muestrahoraparcialdos, muestrahoraparcialuno);
-				break;
-			case 2:
-				ILI9341DrawString(100,100, muestrahoraparcialuno, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
-				ILI9341DrawString(100,130, muestrahoraparcialdos, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
-				ILI9341DrawString(100,160, muestrahoraparcialtres, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
-				ILI9341DrawString(100,190, muestrahoraparcialcuatro, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
-				stpcpy(muestrahoraparcialcuatro, muestrahoraparcialtres);
-				stpcpy(muestrahoraparcialtres, muestrahoraparcialdos);
-				stpcpy(muestrahoraparcialdos, muestrahoraparcialuno);
-    			break;
-			case 3:
-				ILI9341DrawString(100,100, muestrahoraparcialuno, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
-				ILI9341DrawString(100,130, muestrahoraparcialdos, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
-				ILI9341DrawString(100,160, muestrahoraparcialtres, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
-				ILI9341DrawString(100,190, muestrahoraparcialcuatro, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
-				stpcpy(muestrahoraparcialcuatro, muestrahoraparcialtres);
-				stpcpy(muestrahoraparcialtres, muestrahoraparcialdos);
-				stpcpy(muestrahoraparcialdos, muestrahoraparcialuno);
-				break;
-			default:
- 			break;
+			ILI9341DrawString(100,100, muestrahoraparcialuno, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
+			ILI9341DrawString(100,130, muestrahoraparcialdos, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
+			ILI9341DrawString(100,160, muestrahoraparcialtres, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
+			ILI9341DrawString(100,190, muestrahoraparcialcuatro, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
+			stpcpy(muestrahoraparcialcuatro, muestrahoraparcialtres);
+			stpcpy(muestrahoraparcialtres, muestrahoraparcialdos);
+			stpcpy(muestrahoraparcialdos, muestrahoraparcialuno);
 			}
-
-			contadortiemposparciales++;
-			contadortiemposparciales=contadortiemposparciales % 4;
-
-		}
 
 
 
