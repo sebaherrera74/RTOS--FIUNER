@@ -297,59 +297,48 @@ void Display(void * parametros)
 
 			switch (contadortiemposparciales) {
 			case 0:
-
-				ILI9341DrawString(100,100, muestrahoraparcialuno, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
-				stpcpy(muestrahoraparcialdos, muestrahoraparcialuno);
-				break;
-			case 1:
-
-				ILI9341DrawString(100,100, muestrahoraparcialuno, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
-				ILI9341DrawString(100,130, muestrahoraparcialdos, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
-				stpcpy(muestrahoraparcialtres, muestrahoraparcialdos);
-				stpcpy(muestrahoraparcialdos, muestrahoraparcialuno);
-
-				break;
-			case 2:
-
 				ILI9341DrawString(100,100, muestrahoraparcialuno, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
 				ILI9341DrawString(100,130, muestrahoraparcialdos, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
 				ILI9341DrawString(100,160, muestrahoraparcialtres, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
+				ILI9341DrawString(100,190, muestrahoraparcialcuatro, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
 				stpcpy(muestrahoraparcialcuatro, muestrahoraparcialtres);
 				stpcpy(muestrahoraparcialtres, muestrahoraparcialdos);
 				stpcpy(muestrahoraparcialdos, muestrahoraparcialuno);
 				break;
-
+			case 1:
+				ILI9341DrawString(100,100, muestrahoraparcialuno, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
+				ILI9341DrawString(100,130, muestrahoraparcialdos, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
+				ILI9341DrawString(100,160, muestrahoraparcialtres, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
+				ILI9341DrawString(100,190, muestrahoraparcialcuatro, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
+				stpcpy(muestrahoraparcialcuatro, muestrahoraparcialtres);
+				stpcpy(muestrahoraparcialtres, muestrahoraparcialdos);
+				stpcpy(muestrahoraparcialdos, muestrahoraparcialuno);
+				break;
+			case 2:
+				ILI9341DrawString(100,100, muestrahoraparcialuno, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
+				ILI9341DrawString(100,130, muestrahoraparcialdos, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
+				ILI9341DrawString(100,160, muestrahoraparcialtres, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
+				ILI9341DrawString(100,190, muestrahoraparcialcuatro, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
+				stpcpy(muestrahoraparcialcuatro, muestrahoraparcialtres);
+				stpcpy(muestrahoraparcialtres, muestrahoraparcialdos);
+				stpcpy(muestrahoraparcialdos, muestrahoraparcialuno);
+    			break;
 			case 3:
 				ILI9341DrawString(100,100, muestrahoraparcialuno, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
 				ILI9341DrawString(100,130, muestrahoraparcialdos, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
 				ILI9341DrawString(100,160, muestrahoraparcialtres, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
 				ILI9341DrawString(100,190, muestrahoraparcialcuatro, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
+				stpcpy(muestrahoraparcialcuatro, muestrahoraparcialtres);
+				stpcpy(muestrahoraparcialtres, muestrahoraparcialdos);
+				stpcpy(muestrahoraparcialdos, muestrahoraparcialuno);
 				break;
-
-
-
-
 			default:
-
-
-				break;
+ 			break;
 			}
 
 			contadortiemposparciales++;
 			contadortiemposparciales=contadortiemposparciales % 4;
 
-
-
-
-			/*
-		sprintf(muestrahoraparcialuno,"%02d:%02d:%02d",mensajeRecibido.minutos,mensajeRecibido.segundos,mensajeRecibido.decimas);
-		sprintf(muestrahoraparcialdos,"%02d:%02d:%02d",mensajeRecibido.minutos,mensajeRecibido.segundos,mensajeRecibido.decimas);
-		ILI9341DrawString(100,100, muestrahoraparcialuno, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
-		ILI9341DrawString(100,140, muestrahoraparcialdos, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
-
-
-		//ILI9341DrawString(100,180, muestrahoraparcialtres, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
-		//ILI9341DrawString(100,220, muestrahoraparcialcuatro, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);*/
 		}
 
 
