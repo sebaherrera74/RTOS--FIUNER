@@ -152,55 +152,55 @@ void Teclado(void * parametros)
 		actual=Read_Switches();
 		cambios=actual^anterior;
 
-			if(( actual^anterior) & TECLA1)
-			{
-				if (actual & TECLA1){
-					xEventGroupSetBits(eventos, EVENTO_TECLA_1_ON);
-					contador++;
-					if ((contador%2)==0){
-						xEventGroupClearBits (eventos,  EVENTO_TECLA_1_ON);
-					}
+		if(( actual^anterior) & TECLA1)
+		{
+			if (actual & TECLA1){
+				xEventGroupSetBits(eventos, EVENTO_TECLA_1_ON);
+				contador++;
+				if ((contador%2)==0){
+					xEventGroupClearBits (eventos,  EVENTO_TECLA_1_ON);
 				}
+			}
 
-				/*else
+			/*else
 				{
 					xEventGroupSetBits(eventos, EVENTO_TECLA_1_OFF);
 				}*/
-			}
-			if(( actual^anterior) & TECLA2)
+		}
+		if(( actual^anterior) & TECLA2)
+		{
+			if (actual & TECLA2)
 			{
-				if (actual & TECLA2)
-				{
-					if ((contador%2)==0){
-						xEventGroupSetBits(eventos, EVENTO_TECLA_2_ON);
-					}
-				}
-				else
-				{
-					xEventGroupSetBits(eventos, EVENTO_TECLA_2_OFF);
+				if ((contador%2)==0){
+					xEventGroupSetBits(eventos, EVENTO_TECLA_2_ON);
 				}
 			}
-			if(( actual^anterior) & TECLA3)
+			else
 			{
-				if (actual & TECLA3)
-				{
-					xEventGroupSetBits(eventos, EVENTO_TECLA_3_ON);
-				}
-				else
-				{
-					xEventGroupSetBits(eventos, EVENTO_TECLA_3_OFF);
-				}
+				xEventGroupSetBits(eventos, EVENTO_TECLA_2_OFF);
 			}
-			anterior=actual;
-			vTaskDelay(100/ portTICK_PERIOD_MS);
+		}
+		if(( actual^anterior) & TECLA3)
+		{
+			if (actual & TECLA3)
+			{
+				xEventGroupSetBits(eventos, EVENTO_TECLA_3_ON);
+			}
+			else
+			{
+				xEventGroupSetBits(eventos, EVENTO_TECLA_3_OFF);
+			}
+		}
+		anterior=actual;
+		vTaskDelay(100/ portTICK_PERIOD_MS);
 
 
 		//vTaskDelay(50/ portTICK_PERIOD_MS);
-		}
+	}
 }
 void Cronometro(void * parametros)
 {
-    struct 	tiempo_s * argumentos= parametros;
+	struct 	tiempo_s * argumentos= parametros;
 	TickType_t anterior;
 	anterior=xTaskGetTickCount();
 	EventBits_t uxbits;
@@ -237,16 +237,18 @@ void Cronometro(void * parametros)
 	}
 }
 
-/*void PuestaCero(void * parametros)
+void PuestaCero(void * parametros)
 {
+	tiempo_t *argumentos=(tiempo_t *)parametros;
+
 	while(1)
-		{
+	{
 		xEventGroupWaitBits(eventos, EVENTO_TECLA_2_ON, pdTRUE, pdTRUE,portMAX_DELAY);
-		tiempo.decimas=0;
-		tiempo.segundos=0;
-		tiempo.minutos=0;
-		}
-}*/
+		argumentos->decimas=0;
+		argumentos->segundos=0;
+		argumentos->minutos=0;
+	}
+}
 
 void ValoresParciales(void *parametros){
 	struct tiempo_s mensaje;
@@ -254,6 +256,10 @@ void ValoresParciales(void *parametros){
 	while(1) {
 
 		xEventGroupWaitBits(eventos, EVENTO_TECLA_3_ON, pdTRUE, pdFALSE,portMAX_DELAY);
+		//Uitlizo la variable tiempo que me sirve para ir guardando los
+		//tiempos parciales, me parece que hace falta cambiarla luego
+		//Esta mal porque me guarda el ultimo tiempo y si reseteo a cero quedara eeste tiempo, revisar
+
 		mensaje.decimas=tiempo.decimas;
 		mensaje.segundos=tiempo.segundos;
 		mensaje.minutos=tiempo.minutos;
@@ -267,24 +273,86 @@ void ValoresParciales(void *parametros){
 
 void Display(void * parametros)
 {
-
-	//tiempo_t *argumentos=(tiempo_t*)parametros;
-    struct tiempo_s mensajeRecibido;
-    mensajeRecibido.decimas=0;
-    mensajeRecibido.segundos=0;
-    mensajeRecibido.minutos=0;
+	tiempo_t *argumentos=(tiempo_t*)parametros;
+	struct tiempo_s mensajeRecibido;
+	mensajeRecibido.decimas=0;
+	mensajeRecibido.segundos=0;
+	mensajeRecibido.minutos=0;
 
 	static char muestrahora[9];
-	char muestrahoraparcial[9];
+	char muestrahoraparcialuno[9]={0};
+	char muestrahoraparcialdos[9]={0};
+	char muestrahoraparcialtres[9]={0};
+	char muestrahoraparcialcuatro[9]={0};
+	static uint8_t contadortiemposparciales=0;
+
 	while(1) {
 		//xSemaphoreTake(mutex,portMAX_DELAY);
-		sprintf(muestrahora,"%02d:%02d:%02d",tiempo.minutos,tiempo.segundos,tiempo.decimas);
-		//sprintf(muestrahoraparcial,"%02d:%02d:%02d",tiempoParcial.minutos,tiempoParcial.segundos,tiempoParcial.decimas);
+		sprintf(muestrahora,"%02d:%02d:%02d",argumentos->minutos,argumentos->segundos,argumentos->decimas);
 		ILI9341DrawString(100, 25, muestrahora, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
 
-		xQueueReceive(cola,&mensajeRecibido,10/ portTICK_PERIOD_MS);
-		sprintf(muestrahoraparcial,"%02d:%02d:%02d",mensajeRecibido.minutos,mensajeRecibido.segundos,mensajeRecibido.decimas);
-		ILI9341DrawString(100, 140, muestrahoraparcial, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
+		if(xQueueReceive(cola,&mensajeRecibido,10/ portTICK_PERIOD_MS)){
+
+			sprintf(muestrahoraparcialuno,"%02d:%02d:%02d",mensajeRecibido.minutos,mensajeRecibido.segundos,mensajeRecibido.decimas);
+
+			switch (contadortiemposparciales) {
+			case 0:
+
+				ILI9341DrawString(100,100, muestrahoraparcialuno, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
+				stpcpy(muestrahoraparcialdos, muestrahoraparcialuno);
+				break;
+			case 1:
+
+				ILI9341DrawString(100,100, muestrahoraparcialuno, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
+				ILI9341DrawString(100,130, muestrahoraparcialdos, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
+				stpcpy(muestrahoraparcialtres, muestrahoraparcialdos);
+				stpcpy(muestrahoraparcialdos, muestrahoraparcialuno);
+
+				break;
+			case 2:
+
+				ILI9341DrawString(100,100, muestrahoraparcialuno, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
+				ILI9341DrawString(100,130, muestrahoraparcialdos, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
+				ILI9341DrawString(100,160, muestrahoraparcialtres, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
+				stpcpy(muestrahoraparcialcuatro, muestrahoraparcialtres);
+				stpcpy(muestrahoraparcialtres, muestrahoraparcialdos);
+				stpcpy(muestrahoraparcialdos, muestrahoraparcialuno);
+				break;
+
+			case 3:
+				ILI9341DrawString(100,100, muestrahoraparcialuno, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
+				ILI9341DrawString(100,130, muestrahoraparcialdos, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
+				ILI9341DrawString(100,160, muestrahoraparcialtres, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
+				ILI9341DrawString(100,190, muestrahoraparcialcuatro, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
+				break;
+
+
+
+
+			default:
+
+
+				break;
+			}
+
+			contadortiemposparciales++;
+			contadortiemposparciales=contadortiemposparciales % 4;
+
+
+
+
+			/*
+		sprintf(muestrahoraparcialuno,"%02d:%02d:%02d",mensajeRecibido.minutos,mensajeRecibido.segundos,mensajeRecibido.decimas);
+		sprintf(muestrahoraparcialdos,"%02d:%02d:%02d",mensajeRecibido.minutos,mensajeRecibido.segundos,mensajeRecibido.decimas);
+		ILI9341DrawString(100,100, muestrahoraparcialuno, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
+		ILI9341DrawString(100,140, muestrahoraparcialdos, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
+
+
+		//ILI9341DrawString(100,180, muestrahoraparcialtres, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);
+		//ILI9341DrawString(100,220, muestrahoraparcialcuatro, &font_16x26, ILI9341_BLACK, ILI9341_WHITE);*/
+		}
+
+
 
 		vTaskDelay(10/ portTICK_PERIOD_MS);
 	}
@@ -322,9 +390,9 @@ int main(void)
 	/* Creación de las tareas */
 	xTaskCreate(Blinking,  "Toggle", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, NULL);
 	xTaskCreate(Teclado,   "Teclas", configMINIMAL_STACK_SIZE,NULL, tskIDLE_PRIORITY + 3, NULL);
-	xTaskCreate(Cronometro,"Cronometros", 1024,(void*)&param, tskIDLE_PRIORITY + 2,NULL);
-	//	xTaskCreate(PuestaCero,"pone a cero ", configMINIMAL_STACK_SIZE,NULL, tskIDLE_PRIORITY + 1,NULL);
-	xTaskCreate(Display,"display", 1024,(void*)&param, tskIDLE_PRIORITY + 4, NULL);
+	xTaskCreate(Cronometro,"Cronometros", configMINIMAL_STACK_SIZE,(void*)&param, tskIDLE_PRIORITY + 2,NULL);
+	xTaskCreate(PuestaCero,"pone a cero ", configMINIMAL_STACK_SIZE,(void*)&param, tskIDLE_PRIORITY + 1,NULL);
+	xTaskCreate(Display,"display", configMINIMAL_STACK_SIZE*4,(void*)&param, tskIDLE_PRIORITY + 4, NULL);
 	xTaskCreate(ValoresParciales,"Parciales",configMINIMAL_STACK_SIZE ,NULL, tskIDLE_PRIORITY + 1, NULL);
 	/* Arranque del sistema operativo */
 	vTaskStartScheduler();
