@@ -117,7 +117,6 @@ typedef struct tiempo_s {
 SemaphoreHandle_t mutex;
 EventGroupHandle_t eventos;
 EventBits_t uxBits;
-tiempo_t  tiempo;
 QueueHandle_t cola;
 /* === Definiciones de variables externas ================================== */
 
@@ -226,9 +225,6 @@ void Cronometro(void * parametros)
 			if (argumentos->minutos==60){
 				argumentos->minutos=0;
 			}
-			tiempo.decimas=argumentos->decimas;
-			tiempo.segundos=argumentos->segundos;
-			tiempo.minutos=argumentos->minutos;
 
 		}
 		anterior=xTaskGetTickCount();
@@ -251,18 +247,18 @@ void PuestaCero(void * parametros)
 }
 
 void ValoresParciales(void *parametros){
+
+	struct 	tiempo_s * argumentos= parametros;
+
 	struct tiempo_s mensaje;
 
 	while(1) {
 
 		xEventGroupWaitBits(eventos, EVENTO_TECLA_3_ON, pdTRUE, pdFALSE,portMAX_DELAY);
-		//Uitlizo la variable tiempo que me sirve para ir guardando los
-		//tiempos parciales, me parece que hace falta cambiarla luego
-		//Esta mal porque me guarda el ultimo tiempo y si reseteo a cero quedara eeste tiempo, revisar
 
-		mensaje.decimas=tiempo.decimas;
-		mensaje.segundos=tiempo.segundos;
-		mensaje.minutos=tiempo.minutos;
+		mensaje.decimas=argumentos->decimas;
+		mensaje.segundos=argumentos->segundos;
+		mensaje.minutos=argumentos->minutos;
 
 		xQueueSend(cola,&mensaje,portMAX_DELAY);
 		vTaskDelay(100/ portTICK_PERIOD_MS);
@@ -302,14 +298,8 @@ void Display(void * parametros)
 			stpcpy(muestrahoraparcialtres, muestrahoraparcialdos);
 			stpcpy(muestrahoraparcialdos, muestrahoraparcialuno);
 			}
-
-
-
 		vTaskDelay(10/ portTICK_PERIOD_MS);
 	}
-
-
-
 }
 
 
@@ -344,7 +334,7 @@ int main(void)
 	xTaskCreate(Cronometro,"Cronometros", configMINIMAL_STACK_SIZE,(void*)&param, tskIDLE_PRIORITY + 2,NULL);
 	xTaskCreate(PuestaCero,"pone a cero ", configMINIMAL_STACK_SIZE,(void*)&param, tskIDLE_PRIORITY + 1,NULL);
 	xTaskCreate(Display,"display", configMINIMAL_STACK_SIZE*4,(void*)&param, tskIDLE_PRIORITY + 4, NULL);
-	xTaskCreate(ValoresParciales,"Parciales",configMINIMAL_STACK_SIZE ,NULL, tskIDLE_PRIORITY + 1, NULL);
+	xTaskCreate(ValoresParciales,"Parciales",configMINIMAL_STACK_SIZE ,(void*)&param, tskIDLE_PRIORITY + 1, NULL);
 	/* Arranque del sistema operativo */
 	vTaskStartScheduler();
 
