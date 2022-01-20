@@ -12,9 +12,9 @@
 
 # ---------- Example of path outside this file folder ------------------
 # Project path
- PROJECT_PATH =projects
+ PROJECT_PATH =examples
 # Project name
- PROJECT_NAME =tp6-colas
+ PROJECT_NAME =serial
  
  
  
